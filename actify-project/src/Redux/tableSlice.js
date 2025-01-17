@@ -1,4 +1,3 @@
-// Redux slice (tableSlice.js)
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialDummyData = Array.from({ length: 20 }, (_, index) => ({
