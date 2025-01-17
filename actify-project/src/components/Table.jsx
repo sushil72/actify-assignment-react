@@ -1,40 +1,88 @@
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useState, useMemo } from "react";
+import { useSelector } from "react-redux";
 import { NavLink } from "react-router-dom";
-import { setTableData } from "../Redux/tableSlice";
+import { ArrowUpDown, Download, Search } from "lucide-react";
 
 const Table = () => {
-  const dispatch = useDispatch();
   const tableData = useSelector((state) => state.table.tableData);
 
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    try {
-      const savedData = localStorage.getItem("tableData");
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        dispatch(setTableData(parsedData));
-      }
-    } catch (error) {
-      console.error("Error loading data from localStorage:", error);
-    }
-  }, [dispatch]);
-
-  // State for pagination
+  // State for pagination, sorting, and search
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState("ascending"); // "ascending" or "descending"
+  const [searchTerm, setSearchTerm] = useState("");
   const entriesPerPage = 10;
 
-  // Calculate current entries
+  // Sort function
+  const sortData = (data, order) => {
+    return [...data].sort((a, b) => {
+      const nameA = a.accountName.toLowerCase();
+      const nameB = b.accountName.toLowerCase();
+      return order === "ascending"
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA);
+    });
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "ascending" ? "descending" : "ascending");
+  };
+
+  // Filter and sort data
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = tableData.filter((entry) =>
+      Object.values(entry).some((value) =>
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+    return sortData(filtered, sortOrder);
+  }, [tableData, searchTerm, sortOrder]);
+
+  // Pagination calculations
   const indexOfLastEntry = currentPage * entriesPerPage;
   const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-  const currentEntries = tableData.slice(indexOfFirstEntry, indexOfLastEntry);
+  const currentEntries = filteredAndSortedData.slice(
+    indexOfFirstEntry,
+    indexOfLastEntry
+  );
+  const totalPages = Math.ceil(filteredAndSortedData.length / entriesPerPage);
 
-  // Calculate total pages
-  const totalPages = Math.ceil(tableData.length / entriesPerPage);
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = [
+      "Account Name",
+      "Email",
+      "Phone No.",
+      "Website",
+      "Industry",
+      "Account Status",
+      "Remark",
+    ];
+    const dataKeys = [
+      "accountName",
+      "email",
+      "phone",
+      "website",
+      "industry",
+      "status",
+      "remark",
+    ];
 
-  // Pagination handler
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
+    const csvContent = [
+      headers.join(","),
+      ...filteredAndSortedData.map((entry) =>
+        dataKeys.map((key) => `"${entry[key]}"`).join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "account_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -45,7 +93,7 @@ const Table = () => {
         <ul className="space-y-2">
           <li>
             <NavLink
-              to="/"
+              to="/table"
               className={({ isActive }) =>
                 `block py-2 px-4 rounded ${
                   isActive ? "bg-blue-300" : "hover:bg-blue-300"
@@ -115,85 +163,121 @@ const Table = () => {
 
         <div className="rounded-lg bg-white">
           <div className="mb-4">
-            <h1 className="text-2xl text-left font-bold px-3 pt-3">
-              Account List
-            </h1>
+            <div className="flex justify-between items-center px-3 pt-3">
+              <h1 className="text-2xl font-bold">Account List</h1>
+              <div className="flex gap-4 items-center">
+                <button
+                  onClick={toggleSortOrder}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                >
+                  <ArrowUpDown size={20} />
+                  View {sortOrder === "ascending" ? "A to Z" : "Z to A"}
+                </button>
+                <div className="relative">
+                  <Search
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    size={20}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={exportToCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                >
+                  <Download size={20} />
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
             <p className="text-gray-500 p-3">
-              Here is the list of your accounts
+              Showing {indexOfFirstEntry + 1} to{" "}
+              {Math.min(indexOfLastEntry, filteredAndSortedData.length)} of{" "}
+              {filteredAndSortedData.length} entries
             </p>
 
-            {tableData.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p className="mb-4">No accounts found</p>
-                <NavLink
-                  to="/account-form"
-                  className="inline-block bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-                >
-                  Create New Account
-                </NavLink>
-              </div>
-            ) : (
-              <table className="w-full bg-white border border-gray-200">
-                <thead>
-                  <tr className="bg-blue-100 border-b border-gray-200">
-                    <th className="px-6 py-2 text-left">Account Name</th>
-                    <th className="px-6 py-2 text-left">Email</th>
-                    <th className="px-6 py-2 text-left">Phone No.</th>
-                    <th className="px-6 py-2 text-left">Website</th>
-                    <th className="px-6 py-2 text-left">Industry</th>
-                    <th className="px-6 py-2 text-left">Account Status</th>
-                    <th className="px-6 py-2 text-left">Remark</th>
+            <table className="w-full bg-white border border-gray-200">
+              <thead>
+                <tr className="bg-blue-100 border-b border-gray-200">
+                  <th className="px-6 py-2 text-left">Account Name</th>
+                  <th className="px-6 py-2 text-left">Email</th>
+                  <th className="px-6 py-2 text-left">Phone No.</th>
+                  <th className="px-6 py-2 text-left">Website</th>
+                  <th className="px-6 py-2 text-left">Industry</th>
+                  <th className="px-6 py-2 text-left">Account Status</th>
+                  <th className="px-6 py-2 text-left">Remark</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentEntries.map((entry, index) => (
+                  <tr
+                    key={index}
+                    className="border-b border-gray-200 hover:bg-gray-50"
+                  >
+                    <td className="px-4 py-2">{entry.accountName}</td>
+                    <td className="px-4 py-2">{entry.email}</td>
+                    <td className="px-4 py-2">{entry.phone}</td>
+                    <td className="px-4 py-2">{entry.website}</td>
+                    <td className="px-4 py-2">{entry.industry}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-sm ${
+                          entry.status === "Active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {entry.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{entry.remark}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {currentEntries.map((entry, index) => (
-                    <tr
-                      key={index}
-                      className="border-b border-gray-200 hover:bg-gray-50"
-                    >
-                      <td className="px-4 py-2">{entry.accountName}</td>
-                      <td className="px-4 py-2">{entry.email}</td>
-                      <td className="px-4 py-2">{entry.phone}</td>
-                      <td className="px-4 py-2">{entry.website}</td>
-                      <td className="px-4 py-2">{entry.industry}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`px-2 py-1 rounded-full text-sm ${
-                            entry.status === "Active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {entry.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">{entry.remark}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Pagination Controls */}
-        {tableData.length > 0 && (
-          <div className="flex justify-center mt-auto">
-            {Array.from({ length: totalPages }, (_, index) => (
-              <button
-                key={index}
-                className={`px-3 py-1 mx-1 border rounded ${
-                  currentPage === index + 1
-                    ? "bg-blue-500 text-white"
-                    : "bg-white text-blue-500 hover:bg-blue-50"
-                }`}
-                onClick={() => handlePageChange(index + 1)}
-              >
-                {index + 1}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50 disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              key={index}
+              className={`px-3 py-1 border rounded ${
+                currentPage === index + 1
+                  ? "bg-blue-500 text-white"
+                  : "bg-white text-blue-500 hover:bg-blue-50"
+              }`}
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() =>
+              setCurrentPage(Math.min(totalPages, currentPage + 1))
+            }
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded bg-white text-blue-500 hover:bg-blue-50 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

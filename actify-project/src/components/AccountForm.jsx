@@ -1,144 +1,157 @@
-// src/components/AccountForm.js
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
-import { addRow } from "../Redux/tableSlice";
-import { NavLink } from "react-router-dom";
+import { addTableData } from "../Redux/tableSlice";
+import { useNavigate } from "react-router-dom";
 
 const AccountForm = () => {
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm();
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const onSubmit = (data) => {
-    // Format status to match the table display
+    // Format the status to match the dummy data format
     const formattedData = {
       ...data,
       status: data.status === "true" ? "Active" : "Inactive",
     };
 
-    dispatch(addRow(formattedData));
-    alert("Row added successfully!");
-    reset(); //Clear form after submission
+    dispatch(addTableData(formattedData));
+    alert("Account added successfully!");
+    navigate("/table"); // Redirect to the table view
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="w-[70%]  mx-auto px-8 py-6 bg-gray-100  rounded-lg shadow-md"
-    >
-      <div className="flex justify-between">
-        <h1 className="text-3xl text-black   font-bold">
-          Enter The following detials{" "}
-        </h1>
-        <NavLink
-          to={"/table"}
-          className="w-[15%] rounded-lg text-xl font-semibold text-center py-3 bg-black text-white"
-        >
-          Check Table
-        </NavLink>
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Account Name:</label>
-        <input
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("accountName", { required: "Account Name is required" })}
-        />
-        {errors.accountName && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors.accountName.message}
-          </p>
-        )}
-      </div>
+    <div className="p-6 w-[60%] mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Create New Account</h2>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Account Name</label>
+          <input
+            {...register("accountName", {
+              required: "Account Name is required",
+            })}
+            className="w-full p-2 border rounded"
+          />
+          {errors.accountName && (
+            <p className="text-red-500 text-sm">{errors.accountName.message}</p>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Email:</label>
-        <input
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("email", {
-            required: "Email is required",
-            pattern: { value: /^\S+@\S+$/i, message: "Invalid email format" },
-          })}
-        />
-        {errors.email && (
-          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Email</label>
+          <input
+            {...register("email", {
+              required: "Email is required",
+              pattern: {
+                value: /^\S+@\S+$/i,
+                message: "Invalid email format",
+              },
+            })}
+            className="w-full p-2 border rounded"
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm">{errors.email.message}</p>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Phone No.:</label>
-        <input
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("phone", {
-            required: "Phone Number is required",
-            pattern: { value: /^\d{10}$/, message: "Must be 10 digits" },
-          })}
-        />
-        {errors.phone && (
-          <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Phone Number</label>
+          <input
+            {...register("phone", {
+              required: "Phone number is required",
+              pattern: {
+                value: /^\d{10}$/,
+                message: "Phone number must be 10 digits",
+              },
+            })}
+            className="w-full p-2 border rounded"
+          />
+          {errors.phone && (
+            <p className="text-red-500 text-sm">{errors.phone.message}</p>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Website:</label>
-        <input
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("website", {
-            required: "Website is required",
-            pattern: {
-              value: /^(http|https):\/\/[^ "]+$/,
-              message: "Invalid URL format (include http:// or https://)",
-            },
-          })}
-        />
-        {errors.website && (
-          <p className="text-red-500 text-sm mt-1">{errors.website.message}</p>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Website</label>
+          <input
+            {...register("website", {
+              required: "Website is required",
+              pattern: {
+                value: /^https?:\/\/.+/,
+                message: "Website must start with http:// or https://",
+              },
+            })}
+            className="w-full p-2 border rounded"
+          />
+          {errors.website && (
+            <p className="text-red-500 text-sm">{errors.website.message}</p>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Industry:</label>
-        <input
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("industry")}
-        />
-      </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Industry</label>
+          <select
+            {...register("industry", { required: "Industry is required" })}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select Industry</option>
+            <option value="Technology">Technology</option>
+            <option value="Finance">Finance</option>
+          </select>
+          {errors.industry && (
+            <p className="text-red-500 text-sm">{errors.industry.message}</p>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Account Status:</label>
-        <select
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("status", { required: "Account Status is required" })}
-        >
-          <option value="">Select</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
-        {errors.status && (
-          <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Account Status
+          </label>
+          <select
+            {...register("status", { required: "Status is required" })}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          {errors.status && (
+            <p className="text-red-500 text-sm">{errors.status.message}</p>
+          )}
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700 mb-2">Remark:</label>
-        <textarea
-          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          {...register("remark")}
-        />
-      </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Remark</label>
+          <textarea
+            {...register("remark")}
+            className="w-full p-2 border rounded"
+            rows="3"
+          />
+        </div>
 
-      <button
-        type="submit"
-        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        Submit
-      </button>
-    </form>
+        <div className="flex gap-4">
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Create Account
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/table")}
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 
